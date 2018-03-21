@@ -56,6 +56,7 @@ public class Main {
 				accessPass.setText("");
 			}
 		});
+		accessFrame.getRootPane().setDefaultButton(accessButton);
 		accessPanel.add(accessButton);
 		accessFrame.add(accessPanel);
 		accessFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
