@@ -139,7 +139,7 @@ public class GymAccess {
 	
 	/**
 	 * ALTERNATIVE 1
-	 * Enter a member ID and allow them to purchase a certain item.
+	 * Enter a member name and allow them to purchase a certain item.
 	 */
 	private void allowPurchase(){
 		JFrame purchaseFrame = new JFrame();
@@ -147,13 +147,130 @@ public class GymAccess {
 		purchaseFrame.setTitle("Allow a purchase");
 		purchasePanel.setLayout(new BoxLayout(purchasePanel, BoxLayout.Y_AXIS));
 		
-		//TODO: Select needed information
-		
+		JLabel memberLabel = new JLabel("Name:");
+		JTextField memberText = new JTextField();
+		ButtonGroup group = new ButtonGroup();
+		JRadioButton signupChoice = new JRadioButton("Sign up for a class");
+		signupChoice.setActionCommand("0");
+		group.add(signupChoice);
+		JRadioButton buyChoice = new JRadioButton("Buy equipment");
+		buyChoice.setActionCommand("1");
+		group.add(buyChoice);
+		JRadioButton rentChoice = new JRadioButton("Rent a facility");
+		rentChoice.setActionCommand("2");
+		group.add(rentChoice);
 		JButton purchaseButton = new JButton("Purchase [All sales final]");
 		purchaseButton.addActionListener((ActionEvent e) -> {
-			 // TODO: Create this function
+			String member = memberText.getText();
+			String selected = group.getSelection().getActionCommand();
+			if(member.equals("")){
+				JOptionPane.showMessageDialog(purchaseFrame.getComponent(0), "Please enter a name");
+				memberText.setText("");
+			}
+			try{
+				if(selected.equals("0")){ //Sign up
+					Class.forName("org.postgresql.Driver");
+					Connection conn = DriverManager.getConnection("jdbc:postgresql://comp421.cs.mcgill.ca:5432/cs421", "cs421g03", "2<group<4");
+					Statement stmt = conn.createStatement();
+					String sqlString = "SELECT cid, ctime, cname "
+							+ "FROM class;";
+					ResultSet rs = stmt.executeQuery(sqlString);
+					ArrayList<Integer> classes = new ArrayList<Integer>();
+					ArrayList<String> times = new ArrayList<String>();
+					ArrayList<String> names = new ArrayList<String>();
+					while(rs.next()){
+						classes.add(rs.getInt("cid"));
+						times.add(rs.getString("ctime"));
+						names.add(rs.getString("cname"));
+					}
+					JFrame signupFrame = new JFrame();
+					JPanel signupPanel = new JPanel();
+					ButtonGroup group2 = new ButtonGroup();
+					for(int i = 0; i < classes.size(); i++){
+						JRadioButton thisChoice = new JRadioButton(names.get(i) + " at " + times.get(i));
+						thisChoice.setActionCommand("" + classes.get(i) + "");
+						group2.add(thisChoice);
+						signupPanel.add(thisChoice);
+					}
+					JButton signupButton = new JButton("Select");
+					signupButton.addActionListener((ActionEvent e1) -> {
+						String selectedClass = group2.getSelection().getActionCommand();
+						int cid = Integer.parseInt(selectedClass);
+						int result = signup(member, cid);
+						if(result == -1){ //member does not exist
+							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Member does not exist.");
+			        		signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
+						}
+						else if(result == -2){ //caught exception
+							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Error encountered. Aborting...");
+		        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
+						}
+						else if(result == -3){ //already signed up for this class
+							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Member already signed up for this class!");
+						}
+						else{ //good. Member now in the signs_up_for table, must be added to the purchase table
+							//TODO
+						}
+					});
+					signupFrame.getRootPane().setDefaultButton(purchaseButton);
+					signupPanel.add(signupButton);
+					signupFrame.add(signupPanel);
+					signupFrame.addWindowListener(new WindowAdapter(){
+						@Override
+						public void windowClosing(WindowEvent evt){
+							signupFrame.dispose();
+						}
+					});
+					signupFrame.pack();
+					signupFrame.setResizable(false);
+					signupFrame.setLocationRelativeTo(null);
+					signupFrame.setVisible(true);
+					stmt.close();
+					conn.close();
+				}
+				else if(selected.equals("1")){ //Buy
+					//Get available eqtypes and number available for each
+					Class.forName("org.postgresql.Driver");
+					Connection conn = DriverManager.getConnection("jdbc:postgresql://comp421.cs.mcgill.ca:5432/cs421", "cs421g03", "2<group<4");
+					Statement stmt = conn.createStatement();
+					String sqlString = "";
+					ResultSet rs = stmt.executeQuery(sqlString);
+					//Select how many of each item you wish to buy
+					
+					int result = buy(member, eqtypes);
+					
+					stmt.close();
+					conn.close();
+				}
+				else if(selected.equals("2")){ //Rent
+					Class.forName("org.postgresql.Driver");
+					Connection conn = DriverManager.getConnection("jdbc:postgresql://comp421.cs.mcgill.ca:5432/cs421", "cs421g03", "2<group<4");
+					Statement stmt = conn.createStatement();
+					String sqlString = "SELECT * "
+							+ "FROM facility";
+					ResultSet rs = stmt.executeQuery(sqlString);
+					
+					rent(member, roomnum);
+					
+					stmt.close();
+					conn.close();
+				}
+				else{
+					JOptionPane.showMessageDialog(purchaseFrame.getComponent(0), "Please select a purchase type");
+					memberText.setText("");
+				}
+			}
+			catch(Exception e1){
+				JOptionPane.showMessageDialog(purchaseFrame.getComponent(0), "Error encountered. Aborting...");
+				e1.printStackTrace();
+				purchaseFrame.dispatchEvent(new WindowEvent(purchaseFrame, WindowEvent.WINDOW_CLOSING));
+			}
 		});
-
+		purchasePanel.add(signupChoice);
+		purchasePanel.add(buyChoice);
+		purchasePanel.add(rentChoice);
+		purchasePanel.add(memberLabel);
+		purchasePanel.add(memberText);
 		purchaseFrame.getRootPane().setDefaultButton(purchaseButton);
 		purchasePanel.add(purchaseButton);
 		purchaseFrame.add(purchasePanel);
@@ -167,6 +284,14 @@ public class GymAccess {
 		purchaseFrame.setResizable(false);
 		purchaseFrame.setLocationRelativeTo(null);
 		purchaseFrame.setVisible(true);
+	}
+	
+	private int buy(String member, String[] eqtypes){
+		
+	}
+	
+	private int rent(String member, int roomnum){
+		
 	}
 	
 	/**
