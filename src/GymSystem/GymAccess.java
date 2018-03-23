@@ -88,8 +88,8 @@ public class GymAccess {
         buyButton.setToolTipText("A member is making a purchase [all sales are final]");
         JButton roomButton = new JButton("View Room Occupations");
         roomButton.setToolTipText("Get a list of times when a certain room cannot be accessed");
-        JButton signupButton = new JButton("Register for a class");
-        signupButton.setToolTipText("Register a member for a class");
+        JButton signupButton = new JButton("Register a new member");
+        signupButton.setToolTipText("A new member has joined the complex!");
         JButton viewMemberReportButton = new JButton("View Member Report");
 		viewMemberReportButton.setToolTipText("View the total purchases of a given member");
         JButton changePassButton = new JButton("Change Password");
@@ -103,7 +103,7 @@ public class GymAccess {
             viewAvailabilities();
         });
         signupButton.addActionListener((ActionEvent e) -> {
-            signUpForClass();
+            signUpMember();
         });
     	viewMemberReportButton.addActionListener((ActionEvent e) -> {
             viewMemberReport();
@@ -328,139 +328,76 @@ public class GymAccess {
 	
 	/**
 	 * ALTERNATIVE 3
-	 * Sign up a member for a certain class. Once signed up, show them a list of all their registered classes and times
+	 * Sign up a new member to the complex. Assign him the next highest available mid
 	 */
-	private void signUpForClass(){
+	private void signUpMember(){
 		JFrame signupFrame = new JFrame();
 		JPanel signupPanel = new JPanel();
 		signupFrame.setTitle("Sign up");
 		signupPanel.setLayout(new BoxLayout(signupPanel, BoxLayout.Y_AXIS));
 		JLabel memberName = new JLabel("Name:");
 		JTextField memberTextField = new JTextField();
-		JLabel className = new JLabel("Class:");
-		JTextField classTextField = new JTextField();
+		JLabel address = new JLabel("Address:");
+		JTextField addressTextField = new JTextField();
+		JLabel phone = new JLabel("Phone Number:");
+		JTextField phoneTextField = new JTextField();
 		JButton signupButton = new JButton("Allow Sign-up");
 		signupButton.addActionListener((ActionEvent e) -> {
 			String member = memberTextField.getText();
-			String classN = classTextField.getText();
-			if(member.equals("") || classN.equals("")){
-				JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Please complete all fields");
+			String addresss = addressTextField.getText();
+			int phoneNum;
+			try{
+				phoneNum = Integer.parseInt(phoneTextField.getText());
+			}
+			catch(Exception e1){
+				JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Please enter a number in the phone number field.");
+				signupFrame.dispose();
+			}
+			if(member.equals("") || addresss.equals("")){
+				JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Please enter a name and address.");
+			}
+			else if(phoneNum < 1000000 || phoneNum > 10000000){
+				JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Please enter a 7-digit phone number.");
 			}
 			else{
 				try{
 					Class.forName("org.postgresql.Driver");
 					Connection conn = DriverManager.getConnection("jdbc:postgresql://comp421.cs.mcgill.ca:5432/cs421", "cs421g03", "2<group<4");
 					Statement stmt = conn.createStatement();
-					String sqlString = "SELECT cid, ctime, froomnum "
-							+ "FROM class "
-							+ "WHERE cname = '" + classN + "';";
+					String sqlString = "SELECT MAX(mid) AS max "
+							+ "FROM member;";
 					ResultSet rs = stmt.executeQuery(sqlString);
-					ArrayList<Integer> classes = new ArrayList<Integer>();
-					ArrayList<String> times = new ArrayList<String>();
-					ArrayList<Integer> roomnums = new ArrayList<Integer>();
+					int cid;
 					while(rs.next()){
-						classes.add(rs.getInt("cid"));
-						times.add(rs.getString("ctime"));
-						roomnums.add(rs.getInt("froomnum"));
+						cid = rs.getInt("max");
 					}
-					if(classes.size() == 0){
-						JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Class does not exist.");
-	        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-	        			
-	        			stmt.close();
-		        		conn.close();
-		        		return;
-					}
-					else if(classes.size() > 1){
-						signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-						JFrame selectFrame = new JFrame();
-						JPanel selectPanel = new JPanel();
-						selectFrame.setTitle("Sign up");
-						selectPanel.setLayout(new BoxLayout(selectPanel, BoxLayout.Y_AXIS));
-						ButtonGroup group = new ButtonGroup();
-						for(int i = 0; i < classes.size(); i++){
-							JRadioButton thisChoice = new JRadioButton(times.get(i) + " in " + roomnums.get(i));
-							thisChoice.setActionCommand(times.get(i));
-							group.add(thisChoice);
-							selectPanel.add(thisChoice);
-						}
-						JButton selectButton = new JButton("Select Section");
-						selectButton.addActionListener((ActionEvent e1) ->{
-							String selected = group.getSelection().getActionCommand();
-							int i = 0;
-							while(i < times.size()){
-								if(times.get(i).equals(selected)){
-									break;
-								}
-								i++;
-							}
-							int cid = classes.get(i);
-							int execute = signup(member, cid);
-							if(execute == -1){
-								JOptionPane.showMessageDialog(selectFrame.getComponent(0), "Member does not exist.");
-								selectFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-			        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-							}
-							if(execute == -2){
-								JOptionPane.showMessageDialog(selectFrame.getComponent(0), "Error encountered. Aborting...");
-								selectFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-			        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-							}
-							if(execute == -3){
-								JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Member already signed up for this class!");
-							}
-							showRegisteredClasses(member);
-							selectFrame.dispose();
-						});
-						selectFrame.getRootPane().setDefaultButton(selectButton);
-						selectPanel.add(selectButton);
-						selectFrame.add(selectPanel);
-						selectFrame.addWindowListener(new WindowAdapter(){
-							@Override
-							public void windowClosing(WindowEvent evt){
-								selectFrame.dispose();
-								signupFrame.dispose();
-							}
-						});
-						selectFrame.pack();
-						selectFrame.setResizable(false);
-						selectFrame.setLocationRelativeTo(null);
-						selectFrame.setVisible(true);
-					}
-					else{
-						int cid = classes.get(0);
-						int execute = signup(member, cid);
-						if(execute == -1){
-							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Member does not exist.");
-		        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-						}
-						if(execute == -2){
-							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Error encountered. Aborting...");
-		        			signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
-						}
-						if(execute == -3){
-							JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Member already signed up for this class!");
-						}
-						showRegisteredClasses(member);
-					}
-					stmt.close();
-					conn.close();
+					cid = cid + 1;
+					sqlString = "INSERT INTO member VALUES ("
+							+ cid + ", '" + member + "', " + phoneNum + ", '" + addresss + "');";
+					
+					stmt.executeUpdate(sqlString);
+	        		stmt.close();
+	        		conn.close();
+	        		JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Password changed successfully");
+	        		signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
 				}
 				catch(Exception e1){
 					JOptionPane.showMessageDialog(signupFrame.getComponent(0), "Error encountered. Aborting...");
 					e1.printStackTrace();
-					signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
+	        		signupFrame.dispatchEvent(new WindowEvent(signupFrame, WindowEvent.WINDOW_CLOSING));
 				}
 			}
 			memberTextField.setText("");
-			classTextField.setText("");
-			
+			addressTextField.setText("");
+			phoneTextField.setText("");
 		});
 		signupFrame.getRootPane().setDefaultButton(signupButton);
 		signupPanel.add(memberName);
 		signupPanel.add(memberTextField);
-		signupPanel.add(className);
-		signupPanel.add(classTextField);
+		signupPanel.add(address);
+		signupPanel.add(addressTextField);
+		signupPanel.add(phone);
+		signupPanel.add(phoneTextField);
 		signupPanel.add(signupButton);
 		signupFrame.add(signupPanel);
 		signupFrame.addWindowListener(new WindowAdapter(){
