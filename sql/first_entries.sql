@@ -1,0 +1,14 @@
+INSERT INTO Employee VALUES (100, 'Hines', '03-22-1971', 30);
+INSERT INTO Instructor VALUES (100);
+
+INSERT INTO Employee VALUES (101, 'Chubbs', '01-14-1948', 42);
+INSERT INTO Instructor VALUES (101);
+
+INSERT INTO Employee VALUES (102, 'Conners', '08-13-1997', 21);
+INSERT INTO Instructor VALUES (102);
+
+INSERT INTO Employee VALUES (103, 'Pantusso', '01-19-1924', 1);
+INSERT INTO Instructor VALUES (103);
+
+INSERT INTO Employee VALUES (104, 'Brown', '04-20-1940', 12);
+INSERT INTO Instructor VALUES (104);
